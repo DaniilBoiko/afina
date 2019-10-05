@@ -5,7 +5,7 @@ namespace Afina {
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Put(const std::string &key, const std::string &value) {
-            if (_lru_index.find(const_cast<std::string &>(key)) == _lru_index.end()) {
+            if (!Is_present(key)) {
                 return SimpleLRU::PutIfAbsent(key, value);
             } else {
                 return SimpleLRU::Set(key, value);
@@ -33,10 +33,18 @@ namespace Afina {
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Set(const std::string &key, const std::string &value) {
             if (Is_present(key)) {
-                size_t added = _lru_index.find(const_cast<std::string &>(key))->second.get().value.size() -
-                               value.size();
+                size_t added;
 
-                if (added > _max_size) {
+                if (_lru_index.find(const_cast<std::string &>(key))->second.get().value.size() -
+                    value.size() < 0) {
+                    added = 0;
+                }
+                else {
+                    added = _lru_index.find(const_cast<std::string &>(key))->second.get().value.size() -
+                                   value.size();
+                }
+
+                if (key.size() + value.size() > _max_size) {
                     return false;
                 }
 
