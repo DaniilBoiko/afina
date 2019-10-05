@@ -79,7 +79,9 @@ namespace Afina {
                         _lru_head = std::move(to_be_deleted.next);
                         _lru_head -> prev = 0;
                     }
-                     return true;
+                     
+                    _lru_index.erase(const_cast<std::string &>(key));
+                    return true;
                 }
 
                 if (_lru_tail -> key == key) {
