@@ -55,6 +55,8 @@ namespace Afina {
 
                 // Move to the end of the list
                 Send_to_back(key);
+
+                return true;
             }
 
             return false;
