@@ -127,13 +127,14 @@ void ServerImpl::OnRun() {
         // Configure read timeout
         {
             struct timeval tv;
-            tv.tv_sec = 5; // TODO: make it configurable
+            tv.tv_sec = _tv_sec; // TODO: make it configurable
             tv.tv_usec = 0;
             setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
         }
 
         // TODO: Start new thread and process data from/to connection
         {
+
             static const std::string msg = "TODO: start new thread and process memcached protocol instead";
             if (send(client_socket, msg.data(), msg.size(), 0) <= 0) {
                 _logger->error("Failed to write response to client: {}", strerror(errno));
