@@ -5,6 +5,7 @@
 #include <thread>
 
 #include <afina/network/Server.h>
+#include <unordered_map>
 
 namespace spdlog {
 class logger;
@@ -37,6 +38,8 @@ protected:
      * Method is running in the connection acceptor thread
      */
     void OnRun();
+    void Process_protocol(int client_socket);
+
 
 private:
     // Logger instance
@@ -44,6 +47,7 @@ private:
 
     int _max_workers;
     int _tv_sec;
+    std::unordered_map<int, std::reference_wrapper<std::thread>> connections;
 
     // Atomic flag to notify threads when it is time to stop. Note that
     // flag must be atomic in order to safely publisj changes cross thread
