@@ -133,7 +133,7 @@ void ServerImpl::OnRun() {
                 setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
             }
 
-            if (this->_max_workers > this->connections.size()) {
+            if (this->_max_workers == this->connections.size()) {
                 _logger->error("We've reached the maximum workers numbers");
                 close(client_socket);
             } else {
