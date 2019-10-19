@@ -46,10 +46,9 @@ namespace Afina {
             if (found->second.get().value.size() -
                 value.size() < 0) {
                 added = 0;
-            }
-            else {
+            } else {
                 added = found->second.get().value.size() -
-                               value.size();
+                        value.size();
             }
 
             if (key.size() + value.size() > _max_size) {
@@ -78,19 +77,18 @@ namespace Afina {
 
                 _lru_index.erase(const_cast<std::string &>(key));
 
-                if (_lru_head -> key == key) {
-                    if (_lru_tail -> key == key) {
+                if (_lru_head->key == key) {
+                    if (_lru_tail->key == key) {
                         _lru_tail = 0;
                         _lru_head = 0;
-                    }
-                     else {
+                    } else {
                         _lru_head = std::move(to_be_deleted.next);
-                        _lru_head -> prev = 0;
+                        _lru_head->prev = 0;
                     }
-                     return true;
+                    return true;
                 }
 
-                if (_lru_tail -> key == key) {
+                if (_lru_tail->key == key) {
                     _lru_tail = to_be_deleted.prev;
                     //_lru_tail -> next = 0;
 
@@ -122,24 +120,23 @@ namespace Afina {
         }
 
         void SimpleLRU::Send_to_back(lru_node &to_send, const std::string &key) {
-            if (_lru_tail -> key != key) {
-                if (_lru_head -> key == key) {
-                    _lru_tail -> next = std::move(_lru_head);
+            if (_lru_tail->key != key) {
+                if (_lru_head->key == key) {
+                    _lru_tail->next = std::move(_lru_head);
 
-                    _lru_head = std::move(_lru_tail -> next -> next);
+                    _lru_head = std::move(_lru_tail->next->next);
                     //_lru_head -> prev = 0;
 
                     _lru_tail = &to_send;
-                }
-                else {
-                    _lru_tail -> next = std::move(to_send.prev -> next);
+                } else {
+                    _lru_tail->next = std::move(to_send.prev->next);
 
-                    to_send.prev -> next = std::move(to_send.next);
-                    to_send.prev -> next -> prev = to_send.prev;
+                    to_send.prev->next = std::move(to_send.next);
+                    to_send.prev->next->prev = to_send.prev;
 
                     to_send.prev = _lru_tail;
                     _lru_tail = &to_send;
-                    _lru_tail -> next = 0;
+                    _lru_tail->next = 0;
                 }
             }
         }
@@ -168,13 +165,12 @@ namespace Afina {
 
                 _lru_index.erase(const_cast<std::string &>(_lru_head->key));
 
-                if (_lru_tail -> key == _lru_head->key) {
+                if (_lru_tail->key == _lru_head->key) {
                     _lru_tail = 0;
                     _lru_head = 0;
-                }
-                else {
+                } else {
                     _lru_head = std::move(_lru_head->next);
-                    _lru_head -> prev = 0;
+                    _lru_head->prev = 0;
                 }
             }
         }
