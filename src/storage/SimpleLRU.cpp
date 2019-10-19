@@ -5,7 +5,9 @@ namespace Afina {
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Put(const std::string &key, const std::string &value) {
-            if (!Is_present(key)) {
+            auto found = _lru_index.find(const_cast<std::string &>(key));
+
+            if (found == _lru_index.end()) {
                 return SimpleLRU::PutIfAbsent(key, value);
             } else {
                 return SimpleLRU::Set(key, value);
@@ -14,8 +16,9 @@ namespace Afina {
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::PutIfAbsent(const std::string &key, const std::string &value) {
-            if (Is_present(key)) {
-                Send_to_back(key);
+            auto found = _lru_index.find(const_cast<std::string &>(key));
+
+            if (found != _lru_index.end()) {
                 return false;
             }
 
@@ -32,42 +35,46 @@ namespace Afina {
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Set(const std::string &key, const std::string &value) {
-            if (Is_present(key)) {
-                size_t added;
+            auto found = _lru_index.find(const_cast<std::string &>(key));
 
-                if (_lru_index.find(const_cast<std::string &>(key))->second.get().value.size() -
-                    value.size() < 0) {
-                    added = 0;
-                }
-                else {
-                    added = _lru_index.find(const_cast<std::string &>(key))->second.get().value.size() -
-                                   value.size();
-                }
-
-                if (key.size() + value.size() > _max_size) {
-                    return false;
-                }
-
-                Free_memory(added);
-
-                // Change value
-                _lru_index.find(const_cast<std::string &>(key))->second.get().value = value;
-
-                // Move to the end of the list
-                Send_to_back(key);
-
-                return true;
+            if (found == _lru_index.end()) {
+                return false;
             }
 
-            return false;
+            size_t added;
+
+            if (found->second.get().value.size() -
+                value.size() < 0) {
+                added = 0;
+            }
+            else {
+                added = found->second.get().value.size() -
+                               value.size();
+            }
+
+            if (key.size() + value.size() > _max_size) {
+                return false;
+            }
+
+            Free_memory(added);
+
+            // Change value
+            found->second.get().value = value;
+
+            // Move to the end of the list
+            Send_to_back(found->second.get(), key);
+
+            return true;
         }
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Delete(const std::string &key) {
-            if (Is_present(key)) {
-                _size_now -= key.size() + _lru_index.find(const_cast<std::string &>(key))->second.get().value.size();
+            auto found = _lru_index.find(const_cast<std::string &>(key));
 
-                lru_node &to_be_deleted = _lru_index.find(const_cast<std::string &>(key))->second.get();
+            if (found != _lru_index.end()) {
+                _size_now -= key.size() + found->second.get().value.size();
+
+                lru_node &to_be_deleted = found->second.get();
 
                 _lru_index.erase(const_cast<std::string &>(key));
 
@@ -102,8 +109,10 @@ namespace Afina {
 
 // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Get(const std::string &key, std::string &value) {
-            if (Is_present(key)) {
-                Send_to_back(key);
+            auto found = _lru_index.find(const_cast<std::string &>(key));
+
+            if (found != _lru_index.end()) {
+                Send_to_back(found->second.get(), key);
 
                 value = _lru_tail->value;
                 return true;
@@ -112,9 +121,7 @@ namespace Afina {
             return false;
         }
 
-        void SimpleLRU::Send_to_back(const std::string &key) {
-            lru_node &to_send = _lru_index.find(const_cast<std::string &>(key))->second.get();
-
+        void SimpleLRU::Send_to_back(lru_node &to_send, const std::string &key) {
             if (_lru_tail -> key != key) {
                 if (_lru_head -> key == key) {
                     _lru_tail -> next = std::move(_lru_head);
@@ -157,13 +164,19 @@ namespace Afina {
 
         void SimpleLRU::Free_memory(size_t added) {
             while (_size_now + added > _max_size) {
-                Delete(_lru_head->key);
+                _size_now -= _lru_head->key.size() + _lru_head->value.size();
+
+                _lru_index.erase(const_cast<std::string &>(_lru_head->key));
+
+                if (_lru_tail -> key == _lru_head->key) {
+                    _lru_tail = 0;
+                    _lru_head = 0;
+                }
+                else {
+                    _lru_head = std::move(_lru_head->next);
+                    _lru_head -> prev = 0;
+                }
             }
         }
-
-        bool SimpleLRU::Is_present(const std::string &key) {
-            return _lru_index.find(const_cast<std::string &>(key)) != _lru_index.end();
-        }
-
     } // namespace Backend
 } // namespace Afina

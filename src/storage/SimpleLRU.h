@@ -40,10 +40,8 @@ public:
     bool Get(const std::string &key, std::string &value) override;
 
     //
-    void Send_to_back(const std::string &key);
     void Put_to_back(const std::string &key, const std::string &value, size_t added);
     void Free_memory(size_t added);
-    bool Is_present(const std::string &key);
 
 private:
     // LRU cache node
@@ -53,6 +51,8 @@ private:
         lru_node *prev;
         std::unique_ptr<lru_node> next;
     };
+
+    void Send_to_back(lru_node &node_to_send, const std::string &key);
 
     // Maximum number of bytes could be stored in this cache.
     // i.e all (keys+values) must be less the _max_size
