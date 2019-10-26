@@ -129,19 +129,19 @@ void ServerImpl::OnRun() {
             // Configure read timeout
             {
                 struct timeval tv;
-                tv.tv_sec = _tv_sec; // TODO: make it configurable
+                tv.tv_sec = _tv_sec;
                 tv.tv_usec = 0;
                 setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
             }
 
-            if (this->_max_workers == this->connections.size()) {
+            if (_max_workers == connections.size()) {
                 _logger->error("We've reached the maximum workers numbers");
                 close(client_socket);
             } else {
                 auto* new_worker = new std::thread(&ServerImpl::Process_protocol, this, client_socket);
 
                 std::lock_guard<std::mutex> lock(connection_mutex);
-                this->connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
+                connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
             }
         }
 
