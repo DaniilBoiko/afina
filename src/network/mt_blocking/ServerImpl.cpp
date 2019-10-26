@@ -138,6 +138,8 @@ void ServerImpl::OnRun() {
                 close(client_socket);
             } else {
                 auto* new_worker = new std::thread(&ServerImpl::Process_protocol, this, client_socket);
+
+                std::lock_guard<std::mutex> lock(connection_mutex);
                 this->connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
             }
         }
@@ -146,11 +148,8 @@ void ServerImpl::OnRun() {
 
 
         // Cleanup on exit...
-        for (auto it = this->connections.begin(); it != this->connections.end(); ) {
-            it -> second.get().join();
-        }
-
-        connections.clear();
+        std::unique_lock<std::mutex> lock(connection_mutex);
+        cv.wait(lock, [this]{ return (this -> connections.empty()); });
 
         _logger->warn("Network stopped");
         close(_server_socket);
@@ -251,6 +250,13 @@ void ServerImpl::Process_protocol(int client_socket) {
     command_to_execute.reset();
     argument_for_command.resize(0);
     parser.Reset();
+
+    // Remove itself from connections dict
+    std::lock_guard<std::mutex> lock(connection_mutex);
+    connections.erase(client_socket);
+    if (connections.empty()) {
+        cv.notify_one();
+    }
 }
 
 } // namespace MTblocking

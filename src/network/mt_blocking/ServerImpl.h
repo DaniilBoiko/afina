@@ -48,6 +48,8 @@ private:
     int _max_workers;
     int _tv_sec;
     std::unordered_map<int, std::reference_wrapper<std::thread>> connections;
+    std::mutex connection_mutex;
+    std::condition_variable cv;
 
     // Atomic flag to notify threads when it is time to stop. Note that
     // flag must be atomic in order to safely publisj changes cross thread
