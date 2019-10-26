@@ -79,7 +79,8 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 // See Server.h
 void ServerImpl::Stop() {
     running.store(false);
-    ServerImpl::Join();
+    assert(_thread.joinable());
+    _thread.join();
     shutdown(_server_socket, SHUT_RDWR);
 }
 

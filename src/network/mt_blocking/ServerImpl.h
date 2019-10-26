@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <thread>
+#include <condition_variable>
 
 #include <afina/network/Server.h>
 #include <unordered_map>
@@ -45,7 +46,7 @@ private:
     // Logger instance
     std::shared_ptr<spdlog::logger> _logger;
 
-    int _max_workers;
+    int _max_workers = 5;
     int _tv_sec;
     std::unordered_map<int, std::reference_wrapper<std::thread>> connections;
     std::mutex connection_mutex;
