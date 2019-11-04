@@ -155,16 +155,27 @@ void Connection::DoRead() {
 void Connection::DoWrite() {
     //Logger section
     _logger->debug("Do write");
+    bool updated = false;
 
     for (auto i = _written_pos; i != _results.end(); i++) {
         auto result = *i;
+        result = result.substr(_written_inside);
 
-        int sended = send(_socket, result.data(), result.size(), 0);
-        if (sended  <= 0) {
-            _written_pos = i;
-            _logger->error("Failed to write response to client: {}", strerror(errno));
+        int written = write(_socket, result.data(), result.size());
+        if (written  <= result.size()) {
+            if (written == -1) {
+                _logger->error("Failed to write response to client: {}", strerror(-1));
+            } else {
+                _written_pos = i;
+                _written_inside = written;
+                updated = true;
+            }
             break;
         }
+    }
+
+    if (!updated) {
+        _written_pos = _results.end();
     }
 
     if (_results.empty()) {
