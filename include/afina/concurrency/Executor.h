@@ -8,6 +8,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <map>
 
 namespace Afina {
 namespace Concurrency {
@@ -87,6 +88,7 @@ private:
      * Vector of actual threads that perorm execution
      */
     std::vector<std::thread> threads;
+    std::map<std::thread::id, std::reference_wrapper<std::thread>> threads_dict;
 
     /**
      * Task queue
@@ -97,6 +99,7 @@ private:
      * Flag to stop bg threads
      */
     State state;
+    int idle_time;
 };
 
 } // namespace Concurrency
