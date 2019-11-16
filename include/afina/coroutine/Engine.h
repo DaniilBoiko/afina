@@ -20,6 +20,12 @@ private:
      * A single coroutine instance which could be scheduled for execution
      * should be allocated on heap
      */
+    enum state {
+        RUNNING,
+        SUSPENDED,
+        DEAD,
+    };
+
     struct context;
     typedef struct context {
         // coroutine stack start address
@@ -37,6 +43,10 @@ private:
         // To include routine in the different lists, such as "alive", "blocked", e.t.c
         struct context *prev = nullptr;
         struct context *next = nullptr;
+        state State;
+
+        struct context *calling = nullptr;
+        struct context *called_by = nullptr;
     } context;
 
     /**
