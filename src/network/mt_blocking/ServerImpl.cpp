@@ -79,16 +79,15 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 // See Server.h
 void ServerImpl::Stop() {
     running.store(false);
+    shutdown(_server_socket, SHUT_RDWR);
     assert(_thread.joinable());
     _thread.join();
-    shutdown(_server_socket, SHUT_RDWR);
 }
 
 // See Server.h
 void ServerImpl::Join() {
     assert(_thread.joinable());
     _thread.join();
-    close(_server_socket);
 }
 
 // See Server.h
@@ -134,14 +133,15 @@ void ServerImpl::OnRun() {
                 setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
             }
 
-            if (_max_workers == connections.size()) {
-                _logger->error("We've reached the maximum workers numbers");
-                close(client_socket);
-            } else {
-                auto* new_worker = new std::thread(&ServerImpl::Process_protocol, this, client_socket);
-
+            {
                 std::lock_guard<std::mutex> lock(connection_mutex);
-                connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
+                if (_max_workers == connections.size()) {
+                    _logger->error("We've reached the maximum workers numbers");
+                    close(client_socket);
+                } else {
+                    auto* new_worker = new std::thread(&ServerImpl::Process_protocol, this, client_socket);
+                    connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
+                }
             }
         }
 
