@@ -8,9 +8,9 @@ namespace Afina {
             auto found = _lru_index.find(const_cast<std::string &>(key));
 
             if (found == _lru_index.end()) {
-                return SimpleLRU::PutIfAbsent(key, value);
+                return SimpleLRU::PutIfAbsent_(key, value);
             } else {
-                return SimpleLRU::Set(key, value);
+                return SimpleLRU::Set_(found -> second.get(), value);
             }
         }
 
@@ -22,6 +22,10 @@ namespace Afina {
                 return false;
             }
 
+            return PutIfAbsent_(key, value);
+        }
+
+        bool SimpleLRU::PutIfAbsent_(const std::string &key, const std::string &value) {
             size_t added = key.size() + value.size();
             if (added > _max_size) {
                 return false;
@@ -29,6 +33,7 @@ namespace Afina {
 
             Free_memory(added);
             Put_to_back(key, value, added);
+
             return true;
         }
 
@@ -41,28 +46,29 @@ namespace Afina {
                 return false;
             }
 
-            size_t added;
+            return Set_(found->second.get(), value);
+        }
 
-            if (found->second.get().value.size() -
-                value.size() < 0) {
-                added = 0;
+        bool SimpleLRU::Set_(Afina::Backend::SimpleLRU::lru_node &found, const std::string &value) {
+            size_t will_be_added = found.value.size() - value.size();
+
+            if (will_be_added < 0) {
+                _size_now -= value.size() - found.value.size();
+
+                // Change value
+                found.value = value;
+
+                // Move to the end of the list
+                Send_to_back(found);
             } else {
-                added = found->second.get().value.size() -
-                        value.size();
+                if (found.key.size() + value.size() > _max_size) {
+                    return false;
+                } else {
+                    Send_to_back(found);
+                    Free_memory(will_be_added);
+                    found.value = value;
+                }
             }
-
-            if (key.size() + value.size() > _max_size) {
-                return false;
-            }
-
-            Free_memory(added);
-
-            // Change value
-            found->second.get().value = value;
-
-            // Move to the end of the list
-            Send_to_back(found->second.get(), key);
-
             return true;
         }
 
@@ -110,7 +116,7 @@ namespace Afina {
             auto found = _lru_index.find(const_cast<std::string &>(key));
 
             if (found != _lru_index.end()) {
-                Send_to_back(found->second.get(), key);
+                Send_to_back(found->second.get());
 
                 value = _lru_tail->value;
                 return true;
@@ -119,7 +125,9 @@ namespace Afina {
             return false;
         }
 
-        void SimpleLRU::Send_to_back(lru_node &to_send, const std::string &key) {
+        void SimpleLRU::Send_to_back(lru_node &to_send) {
+            auto key = to_send.key;
+
             if (_lru_tail->key != key) {
                 if (_lru_head->key == key) {
                     _lru_tail->next = std::move(_lru_head);

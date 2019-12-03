@@ -59,7 +59,10 @@ private:
         std::unique_ptr<lru_node> next;
     };
 
-    void Send_to_back(lru_node &node_to_send, const std::string &key);
+    void Send_to_back(lru_node &node_to_send);
+
+    bool PutIfAbsent_(const std::string &key, const std::string &value);
+    bool Set_(lru_node &found, const std::string &value);
 
     // Maximum number of bytes could be stored in this cache.
     // i.e all (keys+values) must be less the _max_size
