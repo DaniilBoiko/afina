@@ -247,14 +247,17 @@ void ServerImpl::Process_protocol(int client_socket) {
         _logger->error("Failed to process connection on descriptor {}: {}", client_socket, ex.what());
     }
 
-    close(client_socket);
     command_to_execute.reset();
     argument_for_command.resize(0);
     parser.Reset();
 
     // Remove itself from connections dict
     std::lock_guard<std::mutex> lock(connection_mutex);
+    
+    connections[client_socket].get().detach();
     connections.erase(client_socket);
+    close(client_socket);
+
     if (connections.empty()) {
         cv.notify_one();
     }
