@@ -163,7 +163,7 @@ namespace Afina {
             while (_size_now + added > _max_size) {
                 _size_now -= _lru_head->key.size() + _lru_head->value.size();
 
-                _lru_index.erase(const_cast<std::string &>(_lru_head->key));
+                _lru_index.erase(_lru_head->key);
 
                 if (_lru_tail->key == _lru_head->key) {
                     _lru_tail = 0;

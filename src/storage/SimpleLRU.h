@@ -17,11 +17,18 @@ namespace Backend {
  */
 class SimpleLRU : public Afina::Storage {
 public:
-    SimpleLRU(size_t max_size = 1024) : _max_size(max_size), _size_now(0) {}
+    SimpleLRU(size_t max_size = 1024) : _max_size(max_size), _size_now(0), _lru_head(nullptr) {}
 
     ~SimpleLRU() {
-        _lru_index.clear();
-        _lru_head.reset(); // TODO: Here is stack overflow
+        if (_lru_head) {
+            _lru_index.clear();
+            while (_lru_head) {
+                std::unique_ptr<lru_node> node_to_delete;
+                node_to_delete.swap(_lru_head);
+                _lru_head.swap(node_to_delete->next);
+            }
+            _lru_head.reset();
+        }
     }
 
     // Implements Afina::Storage interface
@@ -46,7 +53,7 @@ public:
 private:
     // LRU cache node
     using lru_node = struct lru_node {
-        std::string key;
+        const std::string key;
         std::string value;
         lru_node *prev;
         std::unique_ptr<lru_node> next;
@@ -67,7 +74,7 @@ private:
     lru_node *_lru_tail;
 
             // Index of nodes from list above, allows fast random access to elements by lru_node#key
-    std::map<std::reference_wrapper<std::string>, std::reference_wrapper<lru_node>, std::less<std::string>> _lru_index;
+    std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>, std::less<std::string>> _lru_index;
 };
 
 } // namespace Backend
