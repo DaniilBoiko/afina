@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <spdlog/logger.h>
 #include <afina/Storage.h>
+#include <afina/execute/Command.h>
 #include <afina/logging/Service.h>
 #include "protocol/Parser.h"
 
@@ -16,8 +17,8 @@ namespace STnonblock {
 
 class Connection {
 public:
-    Connection(int s, std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl) : _socket(s),
-            pStorage(ps), pLogging(pl) {
+    Connection(int s, std::shared_ptr<Afina::Storage> ps, std::shared_ptr<spdlog::logger> l) : _socket(s),
+            pStorage(ps), _logger(l) {
         std::memset(&_event, 0, sizeof(struct epoll_event));
         _event.data.ptr = this;
     }

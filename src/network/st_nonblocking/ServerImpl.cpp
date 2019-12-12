@@ -167,17 +167,12 @@ void ServerImpl::OnRun() {
             if (!pc->isAlive()) {
                 if (epoll_ctl(epoll_descr, EPOLL_CTL_DEL, pc->_socket, &pc->_event)) {
                     _logger->error("Failed to delete connection from epoll");
-
-                    close(pc->_socket);
-                    pc->OnClose();
-
-                } else {
-                    close(pc->_socket);
-                    pc->OnClose();
-                    _connections.erase(pc);
-
-                    delete pc;
                 }
+
+                close(pc->_socket);
+                pc->OnClose();
+                _connections.erase(pc);
+                delete pc;
 
             } else if (pc->_event.events != old_mask) {
                 if (epoll_ctl(epoll_descr, EPOLL_CTL_MOD, pc->_socket, &pc->_event)) {

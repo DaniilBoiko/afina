@@ -29,7 +29,6 @@ namespace STnonblock {
 // See Connection.h
 void Connection::Start() {
     //Logger section
-    _logger = pLogging->select("network");
     _logger->info("Start st_nonblocking network service");
 
     _event.events = ((EPOLLIN | EPOLLRDHUP) | EPOLLPRI);
@@ -160,14 +159,15 @@ void Connection::DoWrite() {
     struct iovec iovector[to_be_written];
 
     size_t i = 0;
-    for (auto it: _results, i++) {
+    for (auto it = _results.begin(); it < _results.end(); it++) {
         if (i != 0) {
             iovector[i].iov_base = &(*it)[0];
-            iovector[i].iov_len = &(*it).size();
+            iovector[i].iov_len = (*it).size();
         } else {
             iovector[i].iov_base = &(*it)[0] + _written_amount;
-            iovector[i].iov_len = &(*it).size() - _written_amount;
+            iovector[i].iov_len = (*it).size() - _written_amount;
         }
+        i++;
     }
 
     int written = write(_socket, iovector, to_be_written);
@@ -175,14 +175,14 @@ void Connection::DoWrite() {
         _logger->error("Failed to write response to client: {}", strerror(-1));
     } else {
         int current_amount = 0;
-        for (auto it: _results) {
-            if ((current_amount + &(*it).size()) > written) {
-                _written_amount = current_amount + &(*it).size() - written;
+        for (auto it = _results.begin(); it < _results.end(); it++) {
+            if ((current_amount + (*it).size()) > written) {
+                _written_amount = current_amount + (*it).size() - written;
                 _results.erase(_results.begin(), it);
                 break;
             }
             else {
-                current_amount += &(*it).size();
+                current_amount += (*it).size();
             }
         }
     }
