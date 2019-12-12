@@ -48,7 +48,7 @@ private:
 
     int _max_workers = 5;
     int _tv_sec;
-    std::unordered_map<int, std::reference_wrapper<std::thread>> connections;
+    std::unordered_map<int, std::thread> connections;
     std::mutex connection_mutex;
     std::condition_variable cv;
 
