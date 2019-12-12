@@ -22,7 +22,7 @@ public:
         _event.data.ptr = this;
     }
 
-    inline bool isAlive() const { return true; }
+    inline bool isAlive() const { return (_state == 0); }
 
     void Start();
 
