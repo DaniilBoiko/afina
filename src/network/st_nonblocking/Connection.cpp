@@ -134,7 +134,9 @@ void Connection::DoRead() {
                         argument_for_command.resize(0);
                         parser.Reset();
 
-                        _event.events = (((EPOLLIN | EPOLLRDHUP) | EPOLLERR) | EPOLLOUT);
+                        if (_results.size() == 1) {
+                            _event.events = (((EPOLLIN | EPOLLRDHUP) | EPOLLERR) | EPOLLOUT);
+                        }
                     }
                 } // while (readed_bytes)
             }
