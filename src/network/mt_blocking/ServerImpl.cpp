@@ -254,7 +254,7 @@ void ServerImpl::Process_protocol(int client_socket) {
     // Remove itself from connections dict
     std::lock_guard<std::mutex> lock(connection_mutex);
 
-    connections[client_socket]->detach();
+    connections[client_socket].get().detach();
     connections.erase(client_socket);
     close(client_socket);
 
