@@ -57,6 +57,9 @@ private:
     std::vector<std::string> _results;
     std::vector<std::string>::iterator _written_pos;
     int _written_inside;
+
+    int already_read;
+    char client_buffer[4096];
 };
 
 } // namespace STnonblock

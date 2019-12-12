@@ -69,9 +69,10 @@ void Connection::DoRead() {
 
         try {
             int readed_bytes = -1;
-            char client_buffer[4096];
-            while ((readed_bytes = read(_socket, client_buffer, sizeof(client_buffer))) > 0) {
+            while ((readed_bytes = read(_socket, client_buffer + already_read,
+                    sizeof(client_buffer) - already_read)) > 0) {
                 _logger->debug("Got {} bytes from socket", readed_bytes);
+                already_read += readed_bytes;
 
                 // Single block of data readed from the socket could trigger inside actions a multiple times,
                 // for example:
@@ -141,10 +142,8 @@ void Connection::DoRead() {
                 } // while (readed_bytes)
             }
 
-            if (readed_bytes == 0) {
-                _logger->debug("Connection closed");
-            } else {
-                throw std::runtime_error(std::string(strerror(errno)));
+            if (readed_bytes > 0 && errno != EAGAIN) {
+                throw std::runtime_error(strerror(errno));
             }
         } catch (std::runtime_error &ex) {
             _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
