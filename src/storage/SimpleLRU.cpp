@@ -50,7 +50,7 @@ namespace Afina {
         }
 
         bool SimpleLRU::Set_(Afina::Backend::SimpleLRU::lru_node &found, const std::string &value) {
-            size_t will_be_added = found.value.size() - value.size();
+            int will_be_added = found.value.size() - value.size();
 
             if (will_be_added < 0) {
                 _size_now -= value.size() - found.value.size();
