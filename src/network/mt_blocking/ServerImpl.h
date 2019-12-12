@@ -3,8 +3,10 @@
 
 #include <atomic>
 #include <thread>
+#include <condition_variable>
 
 #include <afina/network/Server.h>
+#include <unordered_map>
 
 namespace spdlog {
 class logger;
@@ -37,10 +39,18 @@ protected:
      * Method is running in the connection acceptor thread
      */
     void OnRun();
+    void Process_protocol(int client_socket);
+
 
 private:
     // Logger instance
     std::shared_ptr<spdlog::logger> _logger;
+
+    int _max_workers = 5;
+    int _tv_sec;
+    std::unordered_map<int, std::reference_wrapper<std::thread>> connections;
+    std::mutex connection_mutex;
+    std::condition_variable cv;
 
     // Atomic flag to notify threads when it is time to stop. Note that
     // flag must be atomic in order to safely publisj changes cross thread
