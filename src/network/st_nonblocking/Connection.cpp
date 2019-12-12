@@ -32,6 +32,8 @@ void Connection::Start() {
     _logger = pLogging->select("network");
     _logger->info("Start st_nonblocking network service");
 
+    _event.events = ((EPOLLIN | EPOLLRDHUP) | EPOLLPRI);
+
     // Prepare for the first command
     command_to_execute.reset();
     argument_for_command.resize(0);
@@ -135,7 +137,7 @@ void Connection::DoRead() {
                         parser.Reset();
 
                         if (_results.size() == 1) {
-                            _event.events = (((EPOLLIN | EPOLLRDHUP) | EPOLLERR) | EPOLLOUT);
+                            _event.events = (((EPOLLIN | EPOLLRDHUP) | EPOLLPRI) | EPOLLOUT);
                         }
                     }
                 } // while (readed_bytes)
@@ -187,7 +189,7 @@ void Connection::DoWrite() {
 
 
     if (_results.empty()) {
-        _event.events = ((EPOLLIN | EPOLLRDHUP) | EPOLLERR);
+        _event.events = ((EPOLLIN | EPOLLRDHUP) | EPOLLPRI);
     }
     else {
         _event.events = (((EPOLLIN | EPOLLRDHUP) | EPOLLERR) | EPOLLOUT);
