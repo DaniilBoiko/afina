@@ -13,7 +13,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
@@ -37,8 +36,6 @@ void Connection::Start() {
     command_to_execute.reset();
     argument_for_command.resize(0);
     parser.Reset();
-
-    _written_pos = _results.begin();
 
     _state = 0;
 }
@@ -154,28 +151,38 @@ void Connection::DoRead() {
 void Connection::DoWrite() {
     //Logger section
     _logger->debug("Do write");
-    bool updated = false;
+    size_t to_be_written = _results.size();
 
-    for (auto i = _written_pos; i != _results.end(); i++) {
-        auto result = *i;
-        result = result.substr(_written_inside);
+    struct iovec iovector[to_be_written];
 
-        int written = write(_socket, result.data(), result.size());
-        if (written  <= result.size()) {
-            if (written == -1) {
-                _logger->error("Failed to write response to client: {}", strerror(-1));
-            } else {
-                _written_pos = i;
-                _written_inside = written;
-                updated = true;
-            }
-            break;
+    size_t i = 0;
+    for (auto it: _results, i++) {
+        if (i != 0) {
+            iovector[i].iov_base = &(*it)[0];
+            iovector[i].iov_len = &(*it).size();
+        } else {
+            iovector[i].iov_base = &(*it)[0] + _written_amount;
+            iovector[i].iov_len = &(*it).size() - _written_amount;
         }
     }
 
-    if (!updated) {
-        _written_pos = _results.end();
+    int written = write(_socket, iovector, to_be_written);
+    if (written == -1) {
+        _logger->error("Failed to write response to client: {}", strerror(-1));
+    } else {
+        int current_amount = 0;
+        for (auto it: _results) {
+            if ((current_amount + &(*it).size()) > written) {
+                _written_amount = current_amount + &(*it).size() - written;
+                _results.erase(_results.begin(), it);
+                break;
+            }
+            else {
+                current_amount += &(*it).size();
+            }
+        }
     }
+
 
     if (_results.empty()) {
         _event.events = ((EPOLLIN | EPOLLRDHUP) | EPOLLERR);

@@ -55,8 +55,7 @@ private:
 
     // Writing related
     std::vector<std::string> _results;
-    std::vector<std::string>::iterator _written_pos;
-    int _written_inside;
+    int _written_amount;
 
     int already_read;
     char client_buffer[4096];
