@@ -139,8 +139,7 @@ void ServerImpl::OnRun() {
                     _logger->error("We've reached the maximum workers numbers");
                     close(client_socket);
                 } else {
-                    auto* new_worker = new std::thread(&ServerImpl::Process_protocol, this, client_socket);
-                    connections.insert(std::make_pair(client_socket, std::ref(*new_worker)));
+                    connections.emplace(client_socket, std::thread(&ServerImpl::Process_protocol, this, client_socket));
                 }
             }
         }
@@ -254,7 +253,7 @@ void ServerImpl::Process_protocol(int client_socket) {
     // Remove itself from connections dict
     std::lock_guard<std::mutex> lock(connection_mutex);
 
-    connections[client_socket].get().detach();
+    connections[client_socket].detach();
     connections.erase(client_socket);
     close(client_socket);
 
