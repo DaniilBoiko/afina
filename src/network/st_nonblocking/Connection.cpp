@@ -161,10 +161,10 @@ void Connection::DoWrite() {
     size_t i = 0;
     for (auto it = _results.begin(); it < _results.end(); it++) {
         if (i != 0) {
-            iovector[i].iov_base = (*it).c_str();
+            iovector[i].iov_base = (void *) ((*it).c_str());
             iovector[i].iov_len = it->size();
         } else {
-            iovector[i].iov_base = (*it).c_str() + _written_amount;
+            iovector[i].iov_base = (void *) ((*it).c_str() + _written_amount);
             iovector[i].iov_len = it->size() - _written_amount;
         }
         i++;
