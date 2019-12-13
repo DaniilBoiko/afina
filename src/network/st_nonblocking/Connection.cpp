@@ -161,11 +161,11 @@ void Connection::DoWrite() {
     size_t i = 0;
     for (auto it = _results.begin(); it < _results.end(); it++) {
         if (i != 0) {
-            iovector[i].iov_base = &(*it)[0];
-            iovector[i].iov_len = (*it).size();
+            iovector[i].iov_base = (*it).c_str();
+            iovector[i].iov_len = it->size();
         } else {
-            iovector[i].iov_base = &(*it)[0] + _written_amount;
-            iovector[i].iov_len = (*it).size() - _written_amount;
+            iovector[i].iov_base = (*it).c_str() + _written_amount;
+            iovector[i].iov_len = it->size() - _written_amount;
         }
         i++;
     }
@@ -173,18 +173,22 @@ void Connection::DoWrite() {
     int written = write(_socket, iovector, to_be_written);
     if (written == -1) {
         _logger->error("Failed to write response to client: {}", strerror(-1));
+        OnError();
     } else {
         int current_amount = 0;
-        for (auto it = _results.begin(); it < _results.end(); it++) {
-            if ((current_amount + (*it).size()) > written) {
-                _written_amount = current_amount + (*it).size() - written;
-                _results.erase(_results.begin(), it);
+        auto to_be_deleted = _results.begin();
+
+        for (to_be_deleted; to_be_deleted < _results.end(); to_be_deleted++) {
+            if ((current_amount + to_be_deleted->size()) > written) {
+                _written_amount = current_amount + to_be_deleted->size() - written;
                 break;
             }
             else {
-                current_amount += (*it).size();
+                current_amount += to_be_deleted->size();
             }
         }
+
+        _results.erase(_results.begin(), to_be_deleted);
     }
 
 
