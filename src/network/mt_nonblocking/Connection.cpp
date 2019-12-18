@@ -29,7 +29,10 @@ namespace MTnonblock {
 // See Connection.h
     void Connection::Start() {
         //Logger section
-        _logger->info("Start st_nonblocking network service");
+        _logger->info("Start mt_nonblocking network service");
+
+        std::unique_lock<std::mutex> lock(mutex);
+        _state = 0;
 
         _event.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI;
 
@@ -38,7 +41,8 @@ namespace MTnonblock {
         argument_for_command.resize(0);
         parser.Reset();
 
-        _state = 0;
+        _written_amount = 0;
+        _results.clear();
     }
 
 // See Connection.h
