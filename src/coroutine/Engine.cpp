@@ -87,7 +87,10 @@ namespace Coroutine {
 
         cur_routine = ctx;
         cur_routine->State = RUNNING;
-        Restore(*ctx);
+
+        if (ctx != idle_ctx) {
+            Restore(*ctx);
+        }
     }
 
 } // namespace Coroutine
