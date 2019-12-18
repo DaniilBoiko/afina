@@ -119,6 +119,11 @@ void ServerImpl::Stop() {
     if (eventfd_write(_event_fd, 1)) {
         throw std::runtime_error("Failed to wakeup workers");
     }
+
+    for (auto pc:_connections) {
+        close(pc -> _socket);
+        delete(pc);
+    }
 }
 
 // See Server.h
@@ -193,7 +198,7 @@ void ServerImpl::OnRun() {
                 }
 
                 // Register the new FD to be monitored by epoll.
-                Connection *pc = new Connection(infd);
+                Connection *pc = new Connection(infd, pStorage, _logger);
                 if (pc == nullptr) {
                     throw std::runtime_error("Failed to allocate connection");
                 }
@@ -212,6 +217,7 @@ void ServerImpl::OnRun() {
             }
         }
     }
+    close(_server_socket);
     _logger->warn("Acceptor stopped");
 }
 
