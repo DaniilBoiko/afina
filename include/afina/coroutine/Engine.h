@@ -20,7 +20,6 @@ private:
      * A single coroutine instance which could be scheduled for execution
      * should be allocated on heap
      */
-
     struct context;
     typedef struct context {
         // coroutine stack start address
