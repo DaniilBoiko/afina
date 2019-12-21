@@ -3,6 +3,8 @@
 
 #include <thread>
 #include <vector>
+#include "Connection.h"
+#include <set>
 
 #include <afina/network/Server.h>
 
@@ -63,6 +65,8 @@ private:
 
     // threads serving read/write requests
     std::vector<Worker> _workers;
+    std::set<Connection*> _connections;
+    std::mutex _mutex;
 };
 
 } // namespace MTnonblock
