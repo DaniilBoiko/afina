@@ -29,6 +29,11 @@ void Engine::Store(context &ctx) {
 
 void Engine::Restore(context &ctx) {
     char curr_pos;
+
+    if (ctx.Low > &curr_pos and ctx.Hight > &curr_pos) {
+        Restore(ctx);
+    }
+
     memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
     longjmp(ctx.Environment, 1);
 }
@@ -47,7 +52,9 @@ void Engine::yield() {
         }
     }
 
-    sched(start);
+    if (start!=cur_routine or start == nullptr) {
+        sched(start);
+    }
 }
 
 void Engine::sched(void *routine_) {
@@ -57,16 +64,17 @@ void Engine::sched(void *routine_) {
 
     context *ctx = (context *) routine_;
 
-    if (cur_routine != nullptr) {
-        Store(*cur_routine);
-
-        if (setjmp(cur_routine->Environment)) {
-            cur_routine = ctx;
-
-            if (ctx != idle_ctx) {
-                Restore(*ctx);
+    if (ctx != idle_ctx) {
+        if (cur_routine == nullptr) {
+            if (setjmp(cur_routine->Environment) > 0) {
+                return;
             }
         }
+        Store(*cur_routine);
+        cur_routine = ctx;
+        Restore(*ctx);
+    } else {
+        yield();
     }
 }
 
