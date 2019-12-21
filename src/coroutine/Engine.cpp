@@ -60,6 +60,7 @@ void Engine::yield() {
 void Engine::sched(void *routine_) {
     if (routine_ == nullptr) {
         yield();
+        return;
     }
 
     auto ctx = static_cast<context*>(routine_);
