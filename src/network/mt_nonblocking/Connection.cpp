@@ -147,8 +147,10 @@ namespace MTnonblock {
                 } // while (readed_bytes)
             }
 
-            if (readed_bytes > 0 && errno != EAGAIN) {
-                throw std::runtime_error(strerror(errno));
+            if (readed_bytes <= 0) {
+                if  (errno != EAGAIN) {
+                    throw std::runtime_error(strerror(errno));
+                }
             }
         } catch (std::runtime_error &ex) {
             _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
@@ -165,14 +167,17 @@ namespace MTnonblock {
         struct iovec iovector[to_be_written];
 
         size_t i = 0;
-        for (auto it = _results.begin(); it < _results.end(); it++) {
-            if (i != 0) {
-                iovector[i].iov_base = (void *) (it->c_str());
-                iovector[i].iov_len = it->size();
-            } else {
-                iovector[i].iov_base = (void *) (it->c_str() + _written_amount);
-                iovector[i].iov_len = it->size() - _written_amount;
-            }
+        auto it = _results.begin();
+
+        iovector[i].iov_base = (void *) (it->c_str());
+        iovector[i].iov_len = it->size();
+
+        i++;
+        it++;
+
+        for (it < _results.end(); it++) {
+            iovector[i].iov_base = (void *) (it->c_str() + _written_amount);
+            iovector[i].iov_len = it->size() - _written_amount;
             i++;
         }
 
@@ -184,9 +189,9 @@ namespace MTnonblock {
             int current_amount = 0;
             auto to_be_deleted = _results.begin();
 
-            for (to_be_deleted; to_be_deleted < _results.end(); to_be_deleted++) {
+            for (to_be_deleted < _results.end(); to_be_deleted++) {
                 if ((current_amount + to_be_deleted->size()) > written) {
-                    _written_amount = current_amount + to_be_deleted->size() - written;
+                    _written_amount = written - current_amount;
                     break;
                 }
                 else {
