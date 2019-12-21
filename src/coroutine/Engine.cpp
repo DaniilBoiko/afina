@@ -6,69 +6,69 @@
 namespace Afina {
 namespace Coroutine {
 
-    void Engine::Store(context &ctx) {
-        char curr_pos;
+void Engine::Store(context &ctx) {
+    char curr_pos;
 
-        ctx.Low = ctx.Hight = StackBottom;
-        if (ctx.Low > &curr_pos) {
-            ctx.Low = &curr_pos;
+    ctx.Low = ctx.Hight = StackBottom;
+    if (ctx.Low > &curr_pos) {
+        ctx.Low = &curr_pos;
+    } else {
+        ctx.Hight = &curr_pos;
+    }
+
+    size_t size = ctx.Hight - ctx.Low;
+    auto *buf = std::get<0>(ctx.Stack);
+    if (std::get<1>(ctx.Stack) < size or buf == nullptr) {
+        delete[] buf;
+        buf = new char[size];
+    }
+
+    memcpy(buf, ctx.Low, size);
+    ctx.Stack = std::tuple<char *, uint32_t>(buf, size);
+}
+
+void Engine::Restore(context &ctx) {
+    char curr_pos;
+    memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
+    longjmp(ctx.Environment, 1);
+}
+
+void Engine::yield() {
+    if (alive == nullptr) {
+        return;
+    }
+
+    context *start = alive;
+    while (start == cur_routine or start == nullptr) {
+        if (start->next) {
+            start = start->next;
         } else {
-            ctx.Hight = &curr_pos;
-        }
-
-        size_t size = ctx.Hight - ctx.Low;
-        auto *buf = std::get<0>(ctx.Stack);
-        if (std::get<1>(ctx.Stack) < size or buf == nullptr) {
-            delete[] buf;
-            buf = new char[size];
-        }
-
-        memcpy(buf, ctx.Low, size);
-        ctx.Stack = std::tuple<char *, uint32_t>(buf, size);
-    }
-
-    void Engine::Restore(context &ctx) {
-        char curr_pos;
-        memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
-        longjmp(ctx.Environment, 1);
-    }
-
-    void Engine::yield() {
-        if (alive == nullptr) {
             return;
         }
-
-        context *start = alive;
-        while (start == cur_routine or start == nullptr) {
-            if (start->next) {
-                start = start->next;
-            } else {
-                return;
-            }
-        }
-
-        sched(start);
     }
 
-    void Engine::sched(void *routine_) {
-        if (routine_ == nullptr) {
-            yield();
-        }
+    sched(start);
+}
 
-        context *ctx = (context *) routine_;
+void Engine::sched(void *routine_) {
+    if (routine_ == nullptr) {
+        yield();
+    }
 
-        if (cur_routine != nullptr) {
-            Store(*cur_routine);
+    context *ctx = (context *) routine_;
 
-            if (setjmp(cur_routine->Environment)) {
-                cur_routine = ctx;
+    if (cur_routine != nullptr) {
+        Store(*cur_routine);
 
-                if (ctx != idle_ctx) {
-                    Restore(*ctx);
-                }
+        if (setjmp(cur_routine->Environment)) {
+            cur_routine = ctx;
+
+            if (ctx != idle_ctx) {
+                Restore(*ctx);
             }
         }
     }
+}
 
 } // namespace Coroutine
 } // namespace Afina
