@@ -18,16 +18,14 @@ void Engine::Store(context &ctx) {
 
     size_t size = ctx.Hight - ctx.Low;
     auto *buf = std::get<0>(ctx.Stack);
-    size_t new_size = std::get<1>(ctx.Stack);
 
     if (std::get<1>(ctx.Stack) < size or buf == nullptr) {
         delete[] buf;
         buf = new char[size];
-        new_size = size;
+        ctx.Stack = std::tuple<char *, uint32_t>(buf, size);
     }
 
     memcpy(buf, ctx.Low, size);
-    ctx.Stack = std::tuple<char *, uint32_t>(buf, new_size);
 }
 
 void Engine::Restore(context &ctx) {
