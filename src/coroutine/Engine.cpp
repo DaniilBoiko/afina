@@ -18,13 +18,16 @@ void Engine::Store(context &ctx) {
 
     size_t size = ctx.Hight - ctx.Low;
     auto *buf = std::get<0>(ctx.Stack);
+    size_t new_size = std::get<1>(ctx.Stack);
+
     if (std::get<1>(ctx.Stack) < size or buf == nullptr) {
         delete[] buf;
         buf = new char[size];
+        new_size = size;
     }
 
     memcpy(buf, ctx.Low, size);
-    ctx.Stack = std::tuple<char *, uint32_t>(buf, size);
+    ctx.Stack = std::tuple<char *, uint32_t>(buf, new_size);
 }
 
 void Engine::Restore(context &ctx) {
@@ -34,7 +37,7 @@ void Engine::Restore(context &ctx) {
         Restore(ctx);
     }
 
-    memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
+    memcpy(ctx.Low, std::get<0>(ctx.Stack), ctx.Hight-ctx.Low);
     longjmp(ctx.Environment, 1);
 }
 
@@ -43,17 +46,16 @@ void Engine::yield() {
         return;
     }
 
-    context *start = alive;
-    while (start == cur_routine or start == nullptr) {
-        if (start->next) {
-            start = start->next;
-        } else {
+    auto start = static_cast<context*>(alive);
+    if (start != cur_routine) {
+        Enter(*start);
+    } else {
+        if (start->next != nullptr) {
+            Enter(*start->next);
+        }
+        else {
             return;
         }
-    }
-
-    if (start!=cur_routine or start == nullptr) {
-        sched(start);
     }
 }
 
@@ -62,20 +64,24 @@ void Engine::sched(void *routine_) {
         yield();
     }
 
-    context *ctx = (context *) routine_;
+    auto ctx = static_cast<context*>(routine_);
 
     if (ctx != idle_ctx) {
-        if (cur_routine == nullptr) {
-            if (setjmp(cur_routine->Environment) > 0) {
-                return;
-            }
-        }
-        Store(*cur_routine);
-        cur_routine = ctx;
-        Restore(*ctx);
+        Enter(*ctx);
     } else {
         yield();
     }
+}
+
+void Engine::Enter(context& ctx) {
+    if (cur_routine != nullptr and cur_routine != idle_ctx) {
+        if (setjmp(cur_routine->Environment) == 0) {
+            Store(*cur_routine);
+        }
+    }
+
+    cur_routine = &ctx;
+    Restore(ctx);
 }
 
 } // namespace Coroutine
